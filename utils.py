@@ -51,6 +51,7 @@ def forward_euler_2(t, y):
         int_y[i] = int_y[i-1] + y[i-1] * dt
 
     return int_y
+    
 
 def RK4(data, x0, v0):
     n = data.shape[0]
@@ -85,14 +86,26 @@ def plot_2_data(x1, y1, x2=None, y2=None, label_1='y1', label_2='y2', y_axis='Va
     plt.plot(x1, y1, label=label_1)
     if x2 is not None and y2 is not None:
         plt.plot(x2, y2, label=label_2)
-    # x1 = x1*np.pi/180
 
-    # ax1 = plt.subplot(projection='polar')
-    # ax1.plot(y1, x1)
-    # if x2.any() and y2.any():
-    #     x2 = x2*np.pi/180
-    #     ax2 = plt.subplot(projection='polar')
-    #     ax2.plot(y2, x2)
+    plt.xlabel('Time (s)')
+    plt.ylabel(y_axis)
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_3_data(x1, y1, x2=None, y2=None, x3=None, y3=None, label_1='y1', label_2='y2', label_3='y3', y_axis='Value', title='Sensor Data'):
+    """
+    Plots 3 columns vs leftmost column (time)
+    """
+    plt.figure(figsize=(10, 6))
+    plt.title(title)
+
+    plt.plot(x1, y1, label=label_1)
+    if x2 is not None and y2 is not None:
+        plt.plot(x2, y2, label=label_2)
+    if x3 is not None and y3 is not None:
+        plt.plot(x3, y3, label=label_3)
+
     plt.xlabel('Time (s)')
     plt.ylabel(y_axis)
     plt.legend()

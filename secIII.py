@@ -12,6 +12,9 @@ t_acc, a_acc = accel[:,0], accel[:,2]
 t_gyr, w_gyr = gyro[:,0], gyro[:,3]
 t_gps, lat_gps, long_gps = gps[:,0], gps[:,1], gps[:,2]
 px_gps, py_gps = convert_gps(lat_gps, long_gps)
+
+offset = t_gyr[0]-t_acc[0]
+t_sync = t_gyr - offset
 # endregion setup
 
 # region system setup
@@ -125,22 +128,14 @@ def corr(P_k1k, R, x_k1k, y_k):
 # endregion EKF setup
 
 
-#--------------------------------INS and Kalman Speed--------------------------------#
-v_acc = forward_euler_2(t_acc, a_acc)
-
-
-
-offset = t_gyr[0]-t_acc[0]
-t_sync = t_gyr - offset
-# endregion timestep investigation
-
-#----------Kalman Loop------------#
+#--------------------------------EKF--------------------------------#
 x = x_0
 P = P_0
 
-xs = [x_0]
+i = 0
+tol = 0.3
 
-i = 1
+xs = [x_0]
 
 for k in range(0, len(t_sync)-1):
     #prediction step
@@ -152,7 +147,7 @@ for k in range(0, len(t_sync)-1):
     x_pred, P_pred = pred(x, u, P, T)
 
     #correction step (conditional on if there is a GPS measurement at a near moment)
-    if i < len(t_gps) and np.abs(t_gps[i] - t_sync[k+1]) < 0.03:
+    if i < len(t_gps) and np.abs(t_gps[i] - t_sync[k+1]) < tol:
         y = np.array([[px_gps[i]],
                       [py_gps[i]]])
         
@@ -163,76 +158,37 @@ for k in range(0, len(t_sync)-1):
 
     xs.append(x.copy())
 
-
 xs = np.array(xs)
-
 theta_ins = forward_euler_2(t_gyr, w_gyr)
+# plot_2_data(t_sync, xs[:,3],t_gyr, theta_ins+83.3*np.pi/180, label_1='EKF', label_2='INS', y_axis='Heading Angle (rad)',title='Vehicle Heading')
+# print(np.mean(a_acc), np.var(a_acc))
+a_acc -= 2*0.016441781805342132
 
-plot_2_data(t_sync, xs[:,3],t_gyr, theta_ins+83.3*np.pi/180, label_1='EKF', label_2='INS')
+v_acc = forward_euler_2(t_sync, a_acc)
+print(np.mean(a_acc), np.var(a_acc))
 
 
+# dummy v value found using GPS measurements
+# v_acc = np.mean(gps[1:,4])*np.ones(len(t_sync))
 
-
-#-------------------------------INS and Kalman Heading-------------------------------#
-th_gyr = forward_euler_2(t_gyr, w_gyr)
-
+# plot_2_data(t_sync, xs[:,2],t_acc, v_acc, label_1='EKF', label_2='INS', y_axis='Speed (m/s)',title='Vehicle Speed')
 
 #------------------------------INS, GPS, Kalman Position------------------------------#
+x_acc = forward_euler_2(t_sync, v_acc*np.cos(theta_ins+83.3*np.pi/180))
+y_acc = forward_euler_2(t_sync, v_acc*np.sin(theta_ins+83.3*np.pi/180))
+
+
+plot_3_data(t_sync, xs[:,2], t_gps, gps[:,4], t_sync, v_acc)
+
+# plot_3_data(xs[:,0], xs[:,1], px_gps, py_gps, x_acc, y_acc)
+
+
 # 1. map v_acc and th_gyr to same timesteps
 # 2. use vx = v*cos(theta) **OR SIN(THETA) (IDK?)
 # 3. then integrate
 
 
 
-
-# #----------------------------------Kalman Filter---------------------------------#
-"""
-little description goes here :(
-
-x_dot = f(x,u)
-y = h(x,u)
-
-x =     [   p_x
-            p_y
-            v
-            theta   ]
-
-f = [   v*cos(theta)
-        v*sin(theta)
-        a
-        omega   ] = x_dot
-
-A_c =   [   0   0   cos(theta)  -v*sin(theta)
-            0   0   sin(theta)  v*cos(theta)
-            0   0       0           0
-            0   0       0           0   ]
-
-h = [   p_x
-        p_y ] = y
-
-H_c =   [   1   0   0   0
-            0   1   0   0   ]
-
-forward-euler
-A = I+A_c*T
-
-
-
-"""
-
-
-
-
-
-
-
-# H = np.array([[1, 0, 0, 0],
-#             [0, 1, 0, 0]])
-
-# x0 = np.array([[0],
-#                [0],
-#                [0],
-#                [83.3*np.pi/180]])
 
 
 
